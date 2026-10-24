@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bug Bopper — Microbiology Drill</title>
+<!-- Requires bugs-data.js in the SAME folder. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090D; --glass:#10151F; --glass2:#151C29; --line:#243043;
+  --ink:#DCE3ED; --text:#E8ECF2; --dim:#8C9AAE; --accent:#3DA5FF;
+  --good:#3DDC97; --bad:#FF5E6C; --amber:#FFB020; --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+.hidden{display:none!important}
+.screen{position:fixed;inset:0;overflow-y:auto}
+.wrap{width:min(1060px,94vw);margin:0 auto;padding:4vh 0 6vh}
+
+/* ---------- START ---------- */
+.brand{text-align:center;margin-bottom:1.8rem}
+.brand h1{font-family:'Archivo Black',sans-serif;font-size:clamp(2.8rem,8.5vw,6rem);line-height:.86;
+  letter-spacing:-.045em;text-transform:uppercase;
+  background:linear-gradient(176deg,#fff 0%,#9FB4CE 55%,#4E6484 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand h1 em{font-style:normal;display:block;color:transparent;
+  background:linear-gradient(176deg,#FF4D8D,#8B4DE8);-webkit-background-clip:text;background-clip:text}
+.brand p{color:var(--dim);margin-top:.85rem;font-size:1rem}
+.seg{display:flex;justify-content:center;margin-bottom:.9rem}
+.seg div{display:inline-flex;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:4px}
+.seg button{padding:.6rem 1.5rem;border-radius:999px;font-weight:700;font-size:.9rem;color:var(--dim);transition:.18s}
+.seg button[aria-pressed=true]{background:var(--accent);color:#04121F}
+.hint{text-align:center;color:var(--dim);font-size:.85rem;margin-bottom:1.7rem;min-height:1.2em}
+.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:1rem}
+.cat{text-align:left;padding:1.3rem;background:linear-gradient(165deg,var(--glass2),var(--glass));
+  border:1px solid var(--line);border-radius:var(--r);transition:.2s;position:relative;display:flex;flex-direction:column;gap:.55rem}
+.cat:hover{transform:translateY(-4px);border-color:var(--accent)}
+.cat .ico{width:52px;height:52px;--stain:var(--ink)}
+.cat h3{font-family:'Archivo Black',sans-serif;font-size:1.14rem;text-transform:uppercase;letter-spacing:-.02em}
+.cat .n{color:var(--dim);font-size:.78rem;line-height:1.45}
+.cat .bar{height:5px;background:#1C2535;border-radius:99px;overflow:hidden}
+.cat .bar i{display:block;height:100%;background:linear-gradient(90deg,#8B4DE8,#FF4D8D);border-radius:99px}
+.cat .go{margin-top:auto;padding:.6rem;border-radius:9px;background:var(--accent);color:#04121F;font-weight:700;font-size:.84rem}
+.cat .go.alt{background:transparent;border:1px solid var(--line);color:var(--text)}
+.cat .go.alt:hover{border-color:var(--accent);color:var(--accent)}
+.subopts{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-top:1.4rem;align-items:center}
+.ghost{border:1px solid var(--line);background:var(--glass);padding:.6rem 1.2rem;border-radius:999px;font-size:.84rem;color:var(--dim);transition:.18s}
+.ghost:hover{color:var(--text);border-color:var(--accent)}
+.ghost[disabled]{opacity:.35;cursor:not-allowed}
+.legend{margin-top:2.2rem;border-top:1px solid var(--line);padding-top:1.2rem;display:flex;flex-wrap:wrap;
+  gap:.45rem 1.3rem;justify-content:center;font-size:.76rem;color:var(--dim)}
+.legend span{display:inline-flex;align-items:center;gap:.4rem}
+.legend i{width:11px;height:11px;border-radius:3px}
+.foot{text-align:center;color:#55637A;font-size:.74rem;margin-top:1.3rem;line-height:1.75}
+kbd{font-family:'IBM Plex Mono',monospace;background:#121926;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 .35rem;font-size:.72rem;color:var(--text)}
+
+/* ---------- GAME ---------- */
+#game{display:none;flex-direction:column;height:100%}
+#game.on{display:flex}
+#hud{display:flex;align-items:center;gap:1.1rem;padding:.7rem 1.1rem;background:var(--glass);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.hg{display:flex;flex-direction:column;line-height:1.1}
+.hg b{font-family:'IBM Plex Mono',monospace;font-size:1.15rem}
+.hg small{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+#multi{color:var(--amber)} #multi.hot{color:#FF4D8D}
+.sp{flex:1}
+.pill{font-size:.71rem;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);padding:.35rem .75rem;border-radius:99px;color:var(--dim)}
+.pill.live{color:var(--accent);border-color:#1F3C58}
+#fieldwrap{flex:1;padding:14px;min-height:0}
+#field{position:relative;width:100%;height:100%;border-radius:22px;overflow:hidden;border:1px solid var(--line);
+  background:radial-gradient(circle at 50% 46%,#1A2334 0%,#10161F 42%,#080B11 78%,#05070A 100%);
+  box-shadow:inset 0 0 120px -20px #000}
+#field::before{content:"";position:absolute;top:50%;left:50%;width:min(78vh,78%);aspect-ratio:1;transform:translate(-50%,-50%);
+  border:1px solid rgba(61,165,255,.10);border-radius:50%;pointer-events:none}
+.bug{position:absolute;width:116px;cursor:pointer;user-select:none}
+.bug .art{width:88px;height:88px;margin:0 auto;display:block;animation:breathe 3.4s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(220,227,237,.14));transition:filter .35s}
+.bug .body,.bug .spike{fill:var(--stain,var(--ink));transition:fill .5s}
+.bug .nm{display:block;text-align:center;font-size:.67rem;font-weight:700;color:#CBD6E6;text-shadow:0 2px 10px #000;line-height:1.18;font-style:italic}
+.bug .sb{display:block;text-align:center;font-size:.55rem;color:#6E7F96;line-height:1.2}
+.bug .key{position:absolute;top:0;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;
+  font-size:.6rem;color:#05070A;background:var(--ink);border-radius:5px;padding:0 .33rem;opacity:.72}
+.bug .pips{display:flex;gap:4px;justify-content:center;margin-top:4px}
+.bug .pips i{width:16px;height:4px;border-radius:99px;background:#28344A}
+.bug .pips i.on{background:var(--stain,var(--accent));box-shadow:0 0 8px var(--stain,var(--accent))}
+.bug:hover .art{filter:drop-shadow(0 0 24px rgba(61,165,255,.55)) brightness(1.08)}
+.bug.scurry{opacity:.6}
+.bug.scurry .art{animation:breathe 3.4s ease-in-out infinite,jit .15s steps(2) infinite}
+.bug.hit .art{animation:squeal .32s cubic-bezier(.3,1.6,.5,1)}
+.bug.gone{transition:transform .6s cubic-bezier(.5,0,.3,1),opacity .6s;pointer-events:none}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+@keyframes jit{0%{transform:translate(-1.5px,1px) rotate(-2deg)}100%{transform:translate(1.5px,-1px) rotate(2deg)}}
+@keyframes squeal{0%{transform:scale(1)}40%{transform:scale(1.3) rotate(-7deg)}100%{transform:scale(1)}}
+body.calm .bug .art{animation:none!important}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important}}
+#tray{display:flex;align-items:center;gap:.5rem;padding:.5rem .9rem;background:var(--glass);border-top:1px solid var(--line);min-height:60px;overflow-x:auto}
+#tray .lbl{font-size:.62rem;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);flex:none;padding-right:.3rem}
+.chip{flex:none;width:38px;height:38px;border-radius:9px;background:#0C1119;border:1px solid var(--line);display:grid;place-items:center;animation:land .45s cubic-bezier(.3,1.5,.5,1)}
+.chip svg{width:30px;height:30px}
+@keyframes land{0%{transform:scale(1.9);opacity:0}}
+
+/* ---------- QUESTION ---------- */
+#modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(4,6,10,.8);backdrop-filter:blur(7px);padding:18px}
+.card{width:min(640px,100%);background:linear-gradient(168deg,var(--glass2),var(--glass));border:1px solid var(--line);
+  border-radius:20px;padding:1.4rem 1.5rem 1.5rem;box-shadow:0 40px 90px -30px #000;animation:rise .22s cubic-bezier(.2,1,.3,1)}
+@keyframes rise{from{transform:translateY(20px) scale(.97);opacity:0}}
+.card .top{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.card .mini{width:58px;height:58px;flex:none}
+.who{flex:1;min-width:0}
+.who .k{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.who .n{font-family:'Archivo Black',sans-serif;font-size:1.18rem;line-height:1.16;margin-top:.15rem;font-style:italic}
+.who .s{font-size:.7rem;color:var(--dim);margin-top:.2rem}
+.ring{width:52px;height:52px;flex:none;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:5}
+.ring .fgc{stroke:var(--good);stroke-linecap:round;transition:stroke-dashoffset .1s linear,stroke .3s}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:1rem}
+.qtext{font-size:1.14rem;font-weight:500;line-height:1.45;margin-bottom:1.05rem}
+.qtext i{font-style:italic;color:#fff}
+.opts{display:grid;gap:.52rem}
+.opt{display:flex;align-items:center;gap:.8rem;text-align:left;padding:.82rem 1rem;background:#0E141E;
+  border:1px solid var(--line);border-radius:11px;font-size:.96rem;transition:.14s}
+.opt kbd{width:22px;height:22px;flex:none;display:grid;place-items:center;background:#1B2435;color:var(--dim);border:none;padding:0}
+.opt:hover{border-color:var(--accent);background:#121B28;transform:translateX(3px)}
+.opt.right{border-color:var(--good);background:rgba(61,220,151,.13)}
+.opt.right kbd{background:var(--good);color:#04120B}
+.opt.wrong{border-color:var(--bad);background:rgba(255,94,108,.12)}
+.opt.wrong kbd{background:var(--bad);color:#1A0507}
+.opts.done .opt{pointer-events:none}
+.verdict{margin-top:1rem;padding:.82rem 1rem;border-radius:11px;font-size:.88rem;line-height:1.55;border-left:3px solid var(--line);background:#0C121B}
+.verdict.ok{border-left-color:var(--good)} .verdict.no{border-left-color:var(--bad)}
+.vh{font-weight:700;display:block;margin-bottom:.25rem}
+.vh.ok{color:var(--good)} .vh.no{color:var(--bad)}
+.prof{margin-top:.5rem;font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--dim);line-height:1.75}
+.prof em{color:var(--text);font-style:normal}
+.cont{margin-top:.95rem;width:100%;padding:.78rem;border-radius:11px;background:var(--accent);color:#04121F;font-weight:700}
+
+/* ---------- END ---------- */
+#end h2{font-family:'Archivo Black',sans-serif;font-size:clamp(1.9rem,5vw,3rem);text-transform:uppercase;letter-spacing:-.03em;text-align:center}
+#end .sub{text-align:center;color:var(--dim);margin:.4rem 0 1.8rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:.75rem;margin-bottom:2rem}
+.stat{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);padding:.95rem 1rem}
+.stat b{display:block;font-family:'IBM Plex Mono',monospace;font-size:1.65rem;line-height:1}
+.stat small{display:block;font-size:.63rem;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-top:.35rem}
+.sect{font-family:'Archivo Black',sans-serif;font-size:.88rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.85rem;display:flex;align-items:center;gap:.7rem}
+.sect::after{content:"";flex:1;height:1px;background:var(--line)}
+.missrow{border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:10px;padding:.7rem .9rem;background:#0C121B;margin-bottom:.5rem}
+.missrow .o{font-weight:700;font-style:italic;font-size:.95rem}
+.missrow .d{font-size:.8rem;color:var(--dim);margin-top:.25rem;line-height:1.6}
+.missrow .you{color:var(--bad)} .missrow .ans{color:var(--good)}
+.clean{background:rgba(61,220,151,.09);border:1px solid rgba(61,220,151,.3);border-radius:var(--r);padding:1rem;color:var(--good);text-align:center;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:.55rem;margin:0 0 2rem}
+.gcell{background:var(--glass);border:1px solid var(--line);border-radius:11px;padding:.55rem .35rem;text-align:center}
+.gcell svg{width:38px;height:38px}
+.gcell span{display:block;font-size:.58rem;line-height:1.25;margin-top:.25rem;color:var(--text);font-style:italic}
+.endbtns{display:flex;gap:.65rem;flex-wrap:wrap;justify-content:center;margin-top:1.6rem}
+.primary{background:var(--accent);color:#04121F;font-weight:700;padding:.8rem 1.6rem;border-radius:999px}
+#toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);z-index:70;background:#0E1420;border:1px solid var(--line);
+  border-radius:999px;padding:.55rem 1.15rem;font-size:.84rem;font-weight:600;pointer-events:none;opacity:0;transition:.25s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
+.float{position:absolute;z-index:40;font-family:'IBM Plex Mono',monospace;font-size:.95rem;pointer-events:none;
+  animation:fu .9s ease-out forwards;text-shadow:0 2px 10px #000}
+@keyframes fu{to{transform:translateY(-52px);opacity:0}}
+.fatal{max-width:620px;margin:14vh auto;padding:1.6rem;border:1px solid var(--bad);border-radius:var(--r);background:#1A0E12;line-height:1.7}
+.fatal h2{font-family:'Archivo Black',sans-serif;color:var(--bad);margin-bottom:.6rem}
+code{font-family:'IBM Plex Mono',monospace;background:#0C121B;padding:.1rem .4rem;border-radius:5px;font-size:.86em}
+</style>
+</head>
+<body>
+
+<section class="screen" id="start"><div class="wrap">
+  <div class="brand">
+    <h1>Bug<em>Bopper</em></h1>
+    <p>Bop each microbe by naming its characteristics. Collect it, and it finally takes a stain.</p>
+  </div>
+  <div class="seg"><div role="group" aria-label="Mode">
+    <button id="mStudy" aria-pressed="false">Study</button>
+    <button id="mDrill" aria-pressed="true">Drill</button>
+  </div></div>
+  <p class="hint" id="hint"></p>
+  <div class="cats" id="cats"></div>
+  <div class="subopts">
+    <button class="ghost" id="btnWeak">Drill my weak bugs</button>
+    <button class="ghost" id="btnCalm">Calm field: off</button>
+    <button class="ghost" id="btnReset">Reset progress</button>
+  </div>
+  <div class="legend" id="legend"></div>
+  <p class="foot" id="foot"></p>
+</div></section>
+
+<section id="game">
+  <header id="hud">
+    <div class="hg"><b id="hScore">0</b><small>Score</small></div>
+    <div class="hg"><b id="multi">×1.0</b><small>Multiplier</small></div>
+    <div class="hg"><b id="hColl">0/0</b><small>Collected</small></div>
+    <div class="hg"><b id="hWave">1/1</b><small>Wave</small></div>
+    <div class="sp"></div>
+    <span class="pill" id="pMode">Drill</span>
+    <button class="pill" id="pCalm">Calm field</button>
+    <button class="pill live" id="pQuit">End round ⎋</button>
+  </header>
+  <div id="fieldwrap"><div id="field" aria-label="Microscope field"></div></div>
+  <footer id="tray"><span class="lbl">Specimen tray</span></footer>
+</section>
+
+<div id="modal" class="hidden" role="dialog" aria-modal="true"></div>
+<section class="screen hidden" id="end"></section>
+<div id="toast"></div>
+
+<script src="bugs-data.js"></script>
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s)};
+
+/* ---- guard: data module must be present ---- */
+if(!window.BUG_DATA){
+  document.body.innerHTML='<div class="fatal"><h2>Missing bugs-data.js</h2>'+
+  '<p>This page needs <code>bugs-data.js</code> sitting in the <b>same folder</b> as <code>index.html</code>.</p>'+
+  '<p>Check that both files are in the folder and that the filename is exactly <code>bugs-data.js</code> — '+
+  'all lowercase, with the hyphen. Web servers are case-sensitive even though your laptop may not be.</p></div>';
+  return;
+}
+var D=window.BUG_DATA, BUGS=D.BUGS, POOLS=D.POOLS, LAB=D.LABELS, S=null;
+
+/* ================= question keys per organism =================
+   Forward-only. Bops = how many characteristics the chart supports.
+   Nucleic acid is dropped for viruses: strandedness gives it away. */
+function keysFor(b){
+  if(b.cat==="bacterial") return ["gram","shape","oxy"];
+  if(b.cat==="viral")     return ["strand","env","fam"];
+  if(b.a.king==="Fungus") return ["fclass"];
+  return ["p2","p3", b.a.p4 ? "p4" : "p1"];
+}
+var PROMPT={
+  gram:function(n){return "What is the Gram stain of <i>"+n+"</i>?"},
+  shape:function(n){return "What is the morphology of <i>"+n+"</i>?"},
+  oxy:function(n){return "What is the oxygen requirement of <i>"+n+"</i>?"},
+  strand:function(n){return "What is the strandedness of <i>"+n+"</i>?"},
+  env:function(n){return "Is <i>"+n+"</i> enveloped?"},
+  fam:function(n){return "Which family does <i>"+n+"</i> belong to?"},
+  fclass:function(n){return "How is <i>"+n+"</i> classified?"},
+  p1:function(n){return "Is <i>"+n+"</i> an endoparasite or an ectoparasite?"},
+  p2:function(n){return "Which class of parasite is <i>"+n+"</i>?"},
+  p3:function(n){return "Which subgroup does <i>"+n+"</i> fall under?"},
+  p4:function(n){return "What is the common name for <i>"+n+"</i>?"}
+};
+
+function rnd(n){return Math.floor(Math.random()*n)}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=rnd(i+1),t=a[i];a[i]=a[j];a[j]=t}return a}
+function values(pool,key){var s={},o=[];pool.forEach(function(b){var v=b.a[key];if(v&&!s[v]){s[v]=1;o.push(v)}});return o}
+
+function makeQ(bug,key){
+  var pool=POOLS[bug.cat], correct=bug.a[key];
+  var others=shuffle(values(pool,key).filter(function(v){return v!==correct})).slice(0,3);
+  return {key:key,label:LAB[key],prompt:PROMPT[key](bug.name),
+          opts:shuffle([correct].concat(others)),correct:correct};
+}
+function buildQs(bug){return shuffle(keysFor(bug)).map(function(k){return makeQ(bug,k)})}
+function profile(bug){
+  return keysFor(bug).concat(bug.cat==="viral"?["acid"]:[]).map(function(k){
+    return LAB[k]+": <em>"+bug.a[k]+"</em>"}).join(" &nbsp;·&nbsp; ");
+}
+
+/* ================= organism art ================= */
+function hash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function seeded(a){return function(){a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function bugSVG(name,cls){
+  var r=seeded(hash(name)),n=26,pts=[],i,ang,rad;
+  for(i=0;i<n;i++){
+    ang=i/n*Math.PI*2;
+    rad=(i%2===0)?(43+r()*7):(23+r()*5);
+    pts.push((50+Math.cos(ang)*rad).toFixed(1)+","+(50+Math.sin(ang)*rad).toFixed(1));
+  }
+  var tilt=(r()*2-1)*3;
+  return '<svg class="'+(cls||'')+'" viewBox="0 0 100 100" aria-hidden="true">'+
+  '<path class="spike" d="M'+pts.join("L")+'Z"/><circle class="body" cx="50" cy="50" r="25"/>'+
+  '<path d="M32,'+(39+tilt).toFixed(1)+' L45,'+(45-tilt).toFixed(1)+'" stroke="#05070A" stroke-width="3.6" stroke-linecap="round"/>'+
+  '<path d="M68,'+(39-tilt).toFixed(1)+' L55,'+(45+tilt).toFixed(1)+'" stroke="#05070A" stroke-width="3.6" stroke-linecap="round"/>'+
+  '<ellipse cx="40" cy="50" rx="7.2" ry="5.5" fill="#F4F7FB" stroke="#05070A" stroke-width="1.1"/>'+
+  '<ellipse cx="60" cy="50" rx="7.2" ry="5.5" fill="#F4F7FB" stroke="#05070A" stroke-width="1.1"/>'+
+  '<ellipse cx="40" cy="50" rx="1.5" ry="4.4" fill="#05070A"/><ellipse cx="60" cy="50" rx="1.5" ry="4.4" fill="#05070A"/>'+
+  '<path d="M34,60 H66 L62,69 L58,61 L54,69.5 L50,61 L46,69.5 L42,61 L38,69 Z" fill="#F4F7FB" stroke="#05070A" stroke-width="1"/></svg>';
+}
+
+/* ================= persistence ================= */
+var LS="bugbopper.v2", SAVE;
+try{SAVE=JSON.parse(localStorage.getItem(LS))||{m:{}}}catch(e){SAVE={m:{}}}
+function rec(n){return SAVE.m[n]||(SAVE.m[n]={got:0,miss:0})}
+function persist(){try{localStorage.setItem(LS,JSON.stringify(SAVE))}catch(e){}}
+
+/* ================= start screen ================= */
+var MODE="drill", CALM=false;
+var CATS=[
+  {id:"bacterial",t:"Bacterial Bugs",d:"Gram stain · morphology · oxygen. 3 bops each.",w:5,get:function(){return POOLS.bacterial}},
+  {id:"viral",t:"Viral Bugs",d:"Strandedness · envelope · family. 3 bops each.",w:4,get:function(){return POOLS.viral}},
+  {id:"fp",t:"Fungal / Parasitic",d:"Fungi: 1 bop. Parasites: 3 bops.",w:4,get:function(){return POOLS.fp}},
+  {id:"all",t:"All Bugs",d:"Everything, shuffled — real exam conditions.",w:5,get:function(){return BUGS}}
+];
+function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e}
+
+function paintStart(){
+  var host=$("#cats");host.innerHTML="";
+  CATS.forEach(function(c){
+    var pool=c.get(), got=pool.filter(function(b){return rec(b.name).got>0}).length;
+    var pct=Math.round(got/pool.length*100), smp=pool[hash(c.id)%pool.length];
+    var card=el("div","cat");
+    card.innerHTML='<span class="ico" style="--stain:'+D.stainOf(smp)+'">'+bugSVG(c.id+smp.name,"art")+'</span>'+
+      '<h3>'+c.t+'</h3><div class="n">'+c.d+'</div>'+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="n mono">'+got+'/'+pool.length+' collected · '+pct+'%</div>';
+    if(c.id==="all"){
+      var b1=el("button","go","Full sweep · "+pool.length+" bugs");
+      b1.onclick=function(){start("all",BUGS,5,"All Bugs")};
+      var b2=el("button","go alt","Quick drill · 24 bugs");
+      b2.onclick=function(){start("all",shuffle(POOLS.bacterial).slice(0,8)
+        .concat(shuffle(POOLS.viral).slice(0,8),shuffle(POOLS.fp).slice(0,8)),5,"Quick Drill")};
+      card.appendChild(b1);card.appendChild(b2);
+    }else{
+      var b=el("button","go","Start · "+pool.length+" bugs");
+      b.onclick=function(){start(c.id,pool,c.w,c.t)};
+      card.appendChild(b);
+    }
+    host.appendChild(card);
+  });
+  var weak=BUGS.filter(function(b){return rec(b.name).miss>0});
+  $("#btnWeak").disabled=weak.length<3;
+  $("#btnWeak").textContent=weak.length?"Drill my weak bugs ("+weak.length+")":"Drill my weak bugs — none yet";
+  $("#hint").textContent = MODE==="drill"
+    ? "Drill — 10 seconds per question, scored, explanations held until the end."
+    : "Study — untimed, full chart row shown after every answer.";
+}
+$("#legend").innerHTML=[
+  ["#8B4DE8","Crystal violet · Gram-positive"],["#FF4D8D","Safranin · Gram-negative"],
+  ["#FF4233","Carbol fuchsin · Acid-fast"],["#5FD2C4","Gram-indeterminate"],["#FFB020","Atypical"],
+  ["#4D8BFF","DNA virus"],["#FFC24D","RNA virus"],["#63E6BE","Fungus"],["#C084FC","Parasite"]
+].map(function(p){return '<span><i style="background:'+p[0]+'"></i>'+p[1]+'</span>'}).join("");
+$("#foot").innerHTML="Built from the 1312 Bug Charts — "+D.counts.bacterial+" bacteria · "+
+  D.counts.viral+" viruses · "+D.counts.fp+" fungi &amp; parasites. Every answer option is drawn only from those charts.<br>"+
+  "Click a bug or press <kbd>1</kbd>–<kbd>5</kbd>; answer with <kbd>1</kbd>–<kbd>4</kbd>; <kbd>Enter</kbd> to continue.";
+
+/* ================= game ================= */
+var FIELD=$("#field"),bugsOn=[],raf=null,waveIdx=0,waveTotal=0,queue=[],waveSize=5,active=null,timer=null,qStart=0;
+
+function start(catId,pool,ws,label){
+  S={cat:catId,label:label,mode:MODE,score:0,streak:0,best:0,misses:[],
+     total:pool.length,collected:0,t0:Date.now(),roster:pool.slice(),asked:0,right:0,clean:0};
+  queue=shuffle(pool);waveSize=ws;waveIdx=0;waveTotal=Math.ceil(queue.length/waveSize);
+  $("#start").classList.add("hidden");$("#end").classList.add("hidden");$("#game").classList.add("on");
+  $("#pMode").textContent=MODE==="drill"?"Drill · 10s":"Study · untimed";
+  $("#tray").innerHTML='<span class="lbl">Specimen tray</span>';
+  spawnWave();hud();
+  if(!raf) raf=requestAnimationFrame(tick);
+}
+
+function spawnWave(){
+  FIELD.innerHTML="";bugsOn=[];
+  var batch=queue.slice(waveIdx*waveSize,(waveIdx+1)*waveSize);
+  var W=FIELD.clientWidth,H=FIELD.clientHeight,cols=Math.min(batch.length,3);
+  batch.forEach(function(data,i){
+    var qs=buildQs(data);
+    var b={data:data,qs:qs,need:qs.length,bops:0,missed:false,cool:0,key:i+1};
+    var node=el("div","bug");
+    node.innerHTML='<span class="key mono">'+b.key+'</span>'+bugSVG(data.name,"art")+
+      '<span class="nm">'+data.name+'</span>'+
+      (data.subs?'<span class="sb">'+data.subs.join(" · ")+'</span>':'')+
+      '<span class="pips">'+new Array(qs.length+1).join("<i></i>")+'</span>';
+    node.setAttribute("role","button");node.setAttribute("tabindex","0");
+    node.setAttribute("aria-label","Bop "+data.name);
+    node.onclick=function(){poke(b)};
+    node.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();poke(b)}};
+    b.el=node;FIELD.appendChild(node);
+    var bw=node.offsetWidth||116,bh=node.offsetHeight||140;
+    b.w=bw;b.h=bh;
+    b.x=40+(i%cols+.5)*((W-80)/cols)-bw/2+(Math.random()*36-18);
+    b.y=40+(Math.floor(i/cols)+.5)*((H-80)/Math.ceil(batch.length/cols))-bh/2+(Math.random()*26-13);
+    b.x=Math.max(8,Math.min(W-bw-8,b.x));b.y=Math.max(8,Math.min(H-bh-8,b.y));
+    var a=Math.random()*Math.PI*2;b.vx=Math.cos(a)*.28;b.vy=Math.sin(a)*.28;
+    bugsOn.push(b);
+  });
+  hud();
+}
+
+function tick(){
+  var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var W=FIELD.clientWidth,H=FIELD.clientHeight,now=Date.now();
+  bugsOn.forEach(function(b){
+    if(b.done)return;
+    if(!CALM&&!reduce){
+      var sp=(b.cool>now)?2.6:1;
+      b.x+=b.vx*sp;b.y+=b.vy*sp;
+      if(b.x<4||b.x>W-b.w-4){b.vx*=-1;b.x=Math.max(4,Math.min(W-b.w-4,b.x))}
+      if(b.y<4||b.y>H-b.h-4){b.vy*=-1;b.y=Math.max(4,Math.min(H-b.h-4,b.y))}
+    }
+    b.el.style.transform="translate("+b.x.toFixed(1)+"px,"+b.y.toFixed(1)+"px)";
+    if(b.cool<=now&&b.el.classList.contains("scurry"))b.el.classList.remove("scurry");
+  });
+  raf=requestAnimationFrame(tick);
+}
+
+function multOf(s){return [1,1.5,2,3][Math.min(s,3)]}
+function hud(){
+  $("#hScore").textContent=S.score.toLocaleString();
+  var m=multOf(S.streak);
+  $("#multi").textContent="×"+m.toFixed(1);
+  $("#multi").classList.toggle("hot",m>=2);
+  $("#hColl").textContent=S.collected+"/"+S.total;
+  $("#hWave").textContent=Math.min(waveIdx+1,waveTotal)+"/"+waveTotal;
+}
+
+function poke(b){
+  if(active||b.done)return;
+  var others=bugsOn.filter(function(x){return x!==b&&!x.done});
+  if(b.cool>Date.now()&&others.length){toast(b.data.name.split(" ")[0]+" is scurrying — try another");return}
+  active=b;ask(b,b.qs[b.bops]);
+}
+
+function ask(b,q){
+  var m=$("#modal");m.classList.remove("hidden");
+  var timed=S.mode==="drill";
+  m.innerHTML='<div class="card"><div class="top">'+
+    '<span class="mini" style="--stain:var(--ink)">'+bugSVG(b.data.name,"art")+'</span>'+
+    '<div class="who"><div class="k">Bop '+(b.bops+1)+' of '+b.need+' · '+q.label+'</div>'+
+    '<div class="n">'+b.data.name+'</div>'+(b.data.subs?'<div class="s">'+b.data.subs.join(" · ")+'</div>':'')+'</div>'+
+    (timed?'<div class="ring"><svg width="52" height="52"><circle cx="26" cy="26" r="21" stroke="#223049"/>'+
+      '<circle class="fgc" cx="26" cy="26" r="21" stroke-dasharray="131.9" stroke-dashoffset="0"/></svg><b class="mono" id="tnum">10</b></div>':'')+
+    '</div><div class="qtext">'+q.prompt+'</div><div class="opts" id="opts"></div><div id="after"></div></div>';
+  var opts=m.querySelector("#opts");
+  q.opts.forEach(function(o,i){
+    var btn=el("button","opt","<kbd>"+(i+1)+"</kbd><span>"+o+"</span>");
+    btn.onclick=function(){answer(b,q,o,btn)};
+    opts.appendChild(btn);
+  });
+  qStart=Date.now();
+  if(timed){
+    var ring=m.querySelector(".fgc"),num=m.querySelector("#tnum"),T=10000,C=131.9;
+    timer=setInterval(function(){
+      var left=Math.max(0,T-(Date.now()-qStart));
+      ring.style.strokeDashoffset=(C*(1-left/T)).toFixed(1);
+      ring.style.stroke=left<3300?"var(--bad)":left<6000?"var(--amber)":"var(--good)";
+      num.textContent=Math.ceil(left/1000);
+      if(left<=0)answer(b,q,null,null);
+    },80);
+  }
+}
+
+function answer(b,q,pick,btn){
+  if(timer){clearInterval(timer);timer=null}
+  var ms=Date.now()-qStart, ok=(pick===q.correct), m=$("#modal"), opts=m.querySelector("#opts");
+  opts.classList.add("done");S.asked++;
+  [].forEach.call(opts.children,function(c){
+    var t=c.querySelector("span").textContent;
+    if(t===q.correct)c.classList.add("right");
+    else if(c===btn)c.classList.add("wrong");
+  });
+  var head;
+  if(ok){
+    S.right++;
+    var mult=multOf(S.streak),pts=Math.round(100*mult),bonus="";
+    if(S.mode==="drill"&&ms<4000){pts+=50;bonus=", +50 fast"}
+    S.score+=pts;S.streak++;S.best=Math.max(S.best,S.streak);
+    b.bops++;
+    b.el.querySelectorAll(".pips i")[b.bops-1].classList.add("on");
+    b.el.classList.add("hit");setTimeout(function(){b.el.classList.remove("hit")},340);
+    floaty(b,"+"+pts,"var(--good)");
+    head='<span class="vh ok">Correct — bop '+b.bops+' of '+b.need+bonus+'</span>';
+  }else{
+    rec(b.data.name).miss++;
+    S.misses.push({bug:b.data.name,what:q.label,yours:pick===null?"(ran out of time)":pick,truth:q.correct,data:b.data});
+    S.streak=0;b.missed=true;b.cool=Date.now()+4000;b.el.classList.add("scurry");
+    b.qs[b.bops]=makeQ(b.data,q.key);
+    floaty(b,"miss","var(--bad)");
+    head='<span class="vh no">'+(pick===null?"Out of time":"Not quite")+' — it scurried off. Come back to it.</span>';
+  }
+  var after=m.querySelector("#after"),body='<div class="verdict '+(ok?"ok":"no")+'">'+head;
+  if(!ok||S.mode==="study") body+="<div><em>"+b.data.name+"</em> — "+q.label+": <em>"+q.correct+"</em></div>";
+  if(S.mode==="study") body+='<div class="prof">'+profile(b.data)+
+    (b.data.subs?"<br>Species: <em>"+b.data.subs.join(", ")+"</em>":"")+'</div>';
+  body+='</div><button class="cont" id="contBtn">Continue &nbsp;↵</button>';
+  after.innerHTML=body;
+  var cb=$("#contBtn");cb.focus();
+  cb.onclick=function(){
+    m.classList.add("hidden");active=null;
+    if(ok&&b.bops>=b.need)collect(b);
+    else if(!ok&&bugsOn.filter(function(x){return x!==b&&!x.done}).length===0)b.cool=0;
+  };
+  persist();hud();
+}
+
+function collect(b){
+  b.done=true;S.collected++;rec(b.data.name).got++;
+  var stain=D.stainOf(b.data);
+  b.el.style.setProperty("--stain",stain);
+  if(!b.missed){S.clean++;S.score+=500;floaty(b,"+500 clean","var(--amber)")}
+  toast(b.data.name+" collected — stained "+D.stainName(stain));
+  var tray=$("#tray").getBoundingClientRect(),from=b.el.getBoundingClientRect();
+  b.el.classList.add("gone");
+  requestAnimationFrame(function(){
+    b.el.style.transform="translate("+(b.x+(tray.left+40-from.left))+"px,"+(b.y+(tray.top+10-from.top))+"px) scale(.3)";
+    b.el.style.opacity="0";
+  });
+  setTimeout(function(){
+    b.el.remove();
+    var chip=el("div","chip",bugSVG(b.data.name,""));
+    chip.style.setProperty("--stain",stain);chip.title=b.data.name;
+    chip.querySelector("svg").style.setProperty("--stain",stain);
+    chip.querySelectorAll(".body,.spike").forEach(function(p){p.style.fill=stain});
+    $("#tray").appendChild(chip);$("#tray").scrollLeft=9e9;
+  },620);
+  persist();hud();
+  setTimeout(function(){
+    if(bugsOn.every(function(x){return x.done})){
+      waveIdx++;
+      if(waveIdx*waveSize>=queue.length)finish();
+      else{toast("Wave "+(waveIdx+1)+" of "+waveTotal);spawnWave()}
+    }
+  },700);
+}
+
+function floaty(b,txt,col){
+  var f=el("div","float",txt);f.style.color=col;
+  f.style.left=(b.x+b.w/2-18)+"px";f.style.top=(b.y+12)+"px";
+  FIELD.appendChild(f);setTimeout(function(){f.remove()},900);
+}
+var tto=null;
+function toast(t){var n=$("#toast");n.textContent=t;n.classList.add("show");
+  clearTimeout(tto);tto=setTimeout(function(){n.classList.remove("show")},2100)}
+
+/* ================= end ================= */
+function finish(){
+  if(raf){cancelAnimationFrame(raf);raf=null}
+  $("#game").classList.remove("on");
+  var secs=Math.round((Date.now()-S.t0)/1000);
+  var acc=S.asked?Math.round(S.right/S.asked*100):0;
+  var seen={},rows=[];
+  S.misses.forEach(function(m){
+    var k=m.bug+"|"+m.what;
+    if(seen[k]){seen[k].n++;return}
+    seen[k]={bug:m.bug,what:m.what,yours:m.yours,truth:m.truth,data:m.data,n:1};rows.push(seen[k]);
+  });
+  rows.sort(function(a,b){return b.n-a.n||a.bug.localeCompare(b.bug)});
+  var byOrg={},order=[];
+  rows.forEach(function(r){if(!byOrg[r.bug]){byOrg[r.bug]=[];order.push(r.bug)}byOrg[r.bug].push(r)});
+
+  var grid=S.roster.map(function(b){
+    var st=D.stainOf(b);
+    return '<div class="gcell"><span style="--stain:'+st+'">'+bugSVG(b.name,"")+'</span><span>'+b.name+'</span></div>';
+  }).join("");
+
+  $("#end").innerHTML='<div class="wrap"><h2>Field cleared</h2>'+
+    '<p class="sub">'+S.roster.length+' organisms collected · '+(S.mode==="drill"?"Drill mode":"Study mode")+'</p>'+
+    '<div class="stats">'+
+    '<div class="stat"><b>'+S.score.toLocaleString()+'</b><small>Score</small></div>'+
+    '<div class="stat"><b>'+acc+'%</b><small>First-try accuracy</small></div>'+
+    '<div class="stat"><b>'+S.clean+'</b><small>Clean collects</small></div>'+
+    '<div class="stat"><b>'+S.best+'</b><small>Best streak</small></div>'+
+    '<div class="stat"><b>'+Math.floor(secs/60)+":"+("0"+secs%60).slice(-2)+'</b><small>Time</small></div></div>'+
+    '<h3 class="sect">Miss report — review these</h3>'+
+    (order.length? order.map(function(o){
+      return '<div class="missrow"><div class="o">'+o+'</div>'+
+        byOrg[o].map(function(r){return '<div class="d">'+r.what+' — you said <span class="you">'+r.yours+
+          '</span>, correct is <span class="ans">'+r.truth+'</span>'+(r.n>1?' <span class="mono">×'+r.n+'</span>':'')+'</div>'}).join("")+
+        '<div class="d" style="opacity:.8;margin-top:.4rem">'+profile(byOrg[o][0].data)+'</div></div>';
+      }).join("")
+      : '<div class="clean">Clean sheet — not a single miss. Go find a harder category.</div>')+
+    '<h3 class="sect" style="margin-top:2rem">Your stained collection</h3><div class="grid">'+grid+'</div>'+
+    '<div class="endbtns"><button class="primary" id="eAgain">Run it again</button>'+
+    '<button class="ghost" id="eWeak">Drill my weak bugs</button>'+
+    '<button class="ghost" id="eMenu">Back to menu</button></div></div>';
+  $("#end").querySelectorAll(".gcell > span:first-child svg").forEach(function(sv,i){
+    var st=D.stainOf(S.roster[i]);
+    sv.querySelectorAll(".body,.spike").forEach(function(p){p.style.fill=st});
+  });
+  $("#end").classList.remove("hidden");
+  $("#eAgain").onclick=function(){start(S.cat,S.roster,waveSize,S.label)};
+  $("#eMenu").onclick=toMenu;
+  $("#eWeak").onclick=weakDrill;
+}
+function weakDrill(){
+  var weak=BUGS.filter(function(b){return rec(b.name).miss>0});
+  if(weak.length<3){toast("No weak bugs logged yet — play a round first");return}
+  start("weak",shuffle(weak),Math.min(5,weak.length),"Weak Bugs");
+}
+function toMenu(){
+  if(raf){cancelAnimationFrame(raf);raf=null}
+  if(timer){clearInterval(timer);timer=null}
+  $("#game").classList.remove("on");$("#end").classList.add("hidden");$("#modal").classList.add("hidden");
+  active=null;paintStart();$("#start").classList.remove("hidden");
+}
+
+/* ================= input ================= */
+document.addEventListener("keydown",function(e){
+  var open=!$("#modal").classList.contains("hidden");
+  if(open){
+    var cont=$("#contBtn");
+    if(cont&&(e.key==="Enter"||e.key===" ")){e.preventDefault();cont.click();return}
+    if(!cont&&/^[1-4]$/.test(e.key)){
+      var o=$("#modal").querySelectorAll(".opt")[+e.key-1];
+      if(o&&!o.closest(".opts").classList.contains("done"))o.click();
+    }
+    return;
+  }
+  if($("#game").classList.contains("on")){
+    if(/^[1-5]$/.test(e.key)){
+      var b=bugsOn.filter(function(x){return x.key===+e.key&&!x.done})[0];
+      if(b)poke(b);
+    }
+    if(e.key==="Escape"&&confirm("End this round? Collected bugs are saved."))toMenu();
+  }
+});
+$("#pQuit").onclick=function(){if(confirm("End this round? Collected bugs are saved."))toMenu()};
+function setMode(m){MODE=m;$("#mStudy").setAttribute("aria-pressed",m==="study");
+  $("#mDrill").setAttribute("aria-pressed",m==="drill");paintStart()}
+$("#mStudy").onclick=function(){setMode("study")};
+$("#mDrill").onclick=function(){setMode("drill")};
+function toggleCalm(){CALM=!CALM;document.body.classList.toggle("calm",CALM);
+  $("#btnCalm").textContent="Calm field: "+(CALM?"on":"off");
+  $("#pCalm").textContent=CALM?"Calm field ✓":"Calm field"}
+$("#btnCalm").onclick=toggleCalm;$("#pCalm").onclick=toggleCalm;
+$("#btnWeak").onclick=weakDrill;
+$("#btnReset").onclick=function(){
+  if(confirm("Erase all collection progress and weak-bug history?")){SAVE={m:{}};persist();paintStart();toast("Progress cleared")}
+};
+window.addEventListener("resize",function(){
+  if(!S||!$("#game").classList.contains("on"))return;
+  var W=FIELD.clientWidth,H=FIELD.clientHeight;
+  bugsOn.forEach(function(b){b.x=Math.min(b.x,W-b.w-8);b.y=Math.min(b.y,H-b.h-8)});
+});
+setMode("drill");
+})();
+</script>
+</body>
+</html>
